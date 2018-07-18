@@ -34,3 +34,9 @@ captures/
 \.idea/\.idea\.table/\.idea/
 
 \.idea/\.idea\.table/
+
+\.vs/
+
+table/obj/Debug/
+
+table/obj/Release/
