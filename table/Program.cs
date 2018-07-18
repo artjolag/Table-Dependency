@@ -1,120 +1,68 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Security.Permissions;
-using KNLibraries;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Data.SqlClient;
-using System.Security.Permissions;
-using System.Data;
-using System.Collections;
-namespace table
+using KNLibraries;
+using table;
+using TableDependency;
+using TableDependency.Enums;
+using TableDependency.SqlClient;
+using TableDependency.EventArgs;
+
+public class Program
 {
-    
-         //type T must have default constructor
-    class Notify<T> where T : new()
+    private static string _con= MySqlServer.GenerateConnectionString(@"INFORMATIKALAB\sql2014", "ArtjolaLogiPOS");
+   
+    public static void Main()
     {
-        //assign connection string and sql command for listening 
-        public Notify(string ConnectionString, string Command)
+        // The mapper object is used to map model properties that do not have a corresponding table column name.
+        // In case all properties of your model have same name of table columns, you can avoid to use the mapper.
+        /*var mapper = new ModelToTableMapper<Customer>();
+        mapper.AddMapping(c => c.Surname, "Second Name");
+        mapper.AddMapping(c => c.Name, "First Name");*/
+
+        // Here - as second parameter - we pass table name: this is necessary only if the model name is 
+        // different from table name (in our case we have Customer vs Customers). 
+        // If needed, you can also specifiy schema name.
+        using (var tableDependency = new SqlTableDependency<Warranty1>(_con, tableName: "Warranty"))
         {
-            this.ConnectionString = ConnectionString;
-            CollectionReturn = new List<T>();
-            this.Command = Command;
-            this.NotifyNewItem();
-        }
-        //event handler to notify the calling class
-        public event EventHandler ItemReceived;
-        private bool isFirst = true;
-        public string ConnectionString { get; set; }
-        public string Command { get; set; }
-        //rows to return as a collection 
-        public List<T> CollectionReturn { get; set; }
-        //check if user has permission 
-        private bool DoesUserHavePermission()
-        {
-            try
-            {
-                SqlClientPermission clientPermission = new SqlClientPermission(PermissionState.Unrestricted);
-                clientPermission.Demand();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-        //initiate notification 
-private void NotifyNewItem()
-        {
-            if (DoesUserHavePermission())
-            {
-                if (isFirst)
-                {
-                    SqlDependency.Stop(ConnectionString);
-                    SqlDependency.Start(ConnectionString);
-                }
-                try
-                {
-                    using (SqlConnection conn = new SqlConnection(ConnectionString))
-                    {
-                        using (SqlCommand com = new SqlCommand(Command, conn))
-                        {
-                            com.Notification = null;
-                            SqlDependency dep = new SqlDependency(com);
-                            //subscribe to sql dependency event handler
-                            dep.OnChange += new OnChangeEventHandler(dep_OnChange);
-                            conn.Open();
-                            using (var reader = com.ExecuteReader())
-                            {
-                                //convert reader to list<T> using reflection 
-                                while (reader.Read())
-                                {
-                                    var obj = Activator.CreateInstance<T>();
-                                    var properties = obj.GetType().GetProperties();
-                                    foreach (var property in properties)
-                                    {
-                                        if (reader[property.Name] != DBNull.Value)
-                                        {
-                                            property.SetValue(obj, reader[property.Name], null);
-                                        }
-                                    }
-                                    CollectionReturn.Add(obj);
-                                }
-                            }      }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    //Console.WriteLine(ex.Message);
-                } 
-           }
-        }
-        //event handler
-        private void dep_OnChange(object sender, SqlNotificationEventArgs e)
-        {
-            isFirst = false;
-            var sometype = e.Info;
-            //call notify item again 
-            NotifyNewItem();
-            //if it s an insert notify the calling class 
-            if (sometype == SqlNotificationInfo.Insert)
-                onItemReceived(e);
-            SqlDependency dep = sender as SqlDependency;
-            //unsubscribe 
-            dep.OnChange -= new OnChangeEventHandler(dep_OnChange);
-        }
-        private void onItemReceived(SqlNotificationEventArgs eventArgs)
-        {
-            EventHandler handler = ItemReceived;
-            if (handler != null)
-                handler(this, eventArgs);
+            tableDependency.OnChanged += TableDependency_Changed;
+            tableDependency.OnError += TableDependency_OnError;
+            
+            tableDependency.Start();
+            Console.WriteLine("Waiting to recive notification...");
+            Console.WriteLine("Press a key to exit");
+            Console.ReadKey();
+
+            tableDependency.Stop();
         }
     }
 
+    public static void TableDependency_Changed(object sender, RecordChangedEventArgs<Warranty1> e)
+    {
+        Console.WriteLine(Environment.NewLine);
+        if (e.ChangeType != ChangeType.None)
+        {
+            var changedEntity = e.Entity;
+            Console.WriteLine("DML operation: " + e.ChangeType);
+            Console.WriteLine("ID: " + changedEntity.ID);
+            Console.WriteLine("DocumentDate: " + changedEntity.DocumentDate);
+            Console.WriteLine("DocumentNo: " + changedEntity.DocumentNo);
+            Console.WriteLine("ItemNo: " + changedEntity.ItemNo);
+            Console.WriteLine("LineNo: " + changedEntity.LineNo);
+            Console.WriteLine("Serial: " + changedEntity.Serial);
+            Console.WriteLine("Description: " + changedEntity.Description);
+            Console.WriteLine("Warranty: " + changedEntity.Warranty);
+            Console.WriteLine("Export: " + changedEntity.Export);
+            Console.WriteLine("ExportCrm: " + changedEntity.ExportCrm);
+            Console.WriteLine(Environment.NewLine);
+        }
+      
     }
 
-
+    static void TableDependency_OnError(object sender, ErrorEventArgs e)
+    {
+        Exception ex = e.Error;
+        throw ex;
+    }
 }
