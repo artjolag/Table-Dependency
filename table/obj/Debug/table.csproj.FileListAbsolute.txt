@@ -1,0 +1,5 @@
+C:\Users\a.ganellari\RiderProjects\table\table\bin\Debug\table.exe
+C:\Users\a.ganellari\RiderProjects\table\table\bin\Debug\table.pdb
+C:\Users\a.ganellari\RiderProjects\table\table\obj\Debug\table.csprojResolveAssemblyReference.cache
+C:\Users\a.ganellari\RiderProjects\table\table\obj\Debug\table.exe
+C:\Users\a.ganellari\RiderProjects\table\table\obj\Debug\table.pdb
