@@ -14,18 +14,11 @@ public class Program
     private static string _con= MySqlServer.GenerateConnectionString(@"INFORMATIKALAB\sql2014", "ArtjolaLogiPOS");
    
     public static void Main()
-    {
-        // The mapper object is used to map model properties that do not have a corresponding table column name.
-        // In case all properties of your model have same name of table columns, you can avoid to use the mapper.
-        /*var mapper = new ModelToTableMapper<Customer>();
-        mapper.AddMapping(c => c.Surname, "Second Name");
-        mapper.AddMapping(c => c.Name, "First Name");*/
-
-        // Here - as second parameter - we pass table name: this is necessary only if the model name is 
-        // different from table name (in our case we have Customer vs Customers). 
-        // If needed, you can also specifiy schema name.
+    {    
+        SqlDependency.Stop(_con);
         using (var tableDependency = new SqlTableDependency<Warranty1>(_con, tableName: "Warranty"))
-        {
+        {    
+            
             tableDependency.OnChanged += TableDependency_Changed;
             tableDependency.OnError += TableDependency_OnError;
             
